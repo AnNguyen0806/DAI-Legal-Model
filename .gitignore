@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# Training outputs
+outputs/
+checkpoints/
+runs/
+
+# Large model files
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.gguf
+
+# OS
+.DS_Store
+Thumbs.db
