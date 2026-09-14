@@ -10,47 +10,48 @@ The system combines:
 
 - **Large Language Model (LLM)** for natural language understanding and answer generation.
 - **Retrieval-Augmented Generation (RAG)** for retrieving relevant legal documents before generating responses.
-- **Model Context Protocol (MCP)** for connecting the AI model with external tools and services.
-- **FastAPI** for providing backend APIs.
-- **Frontend (FE)** for interacting with the legal assistant.
+- **Model Context Protocol (MCP)** for connecting the AI system with external tools and services.
+- **FastAPI** for backend API services.
+- **Frontend (FE)** for user interaction.
+- **LoRA / PEFT** for domain-specific model fine-tuning.
 
-The main goal of the project is to build a prototype legal AI system that can provide answers based on relevant legal knowledge rather than relying only on the model's internal knowledge.
+This project is developed as an academic/research prototype for applying LLM, RAG, MCP, and fine-tuning techniques to the legal domain.
 
 ---
 
 ## 🏗️ System Architecture
 
 ```text
-                    ┌──────────────────┐
-                    │    Frontend      │
-                    │       (FE)       │
-                    └────────┬─────────┘
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │     FastAPI      │
-                    │     Backend      │
-                    └────────┬─────────┘
-                             │
-                  ┌──────────┴──────────┐
-                  │                     │
-                  ▼                     ▼
-          ┌──────────────┐      ┌──────────────┐
-          │     RAG      │      │     MCP      │
-          │ Retrieval    │      │    Server    │
-          └──────┬───────┘      └──────┬───────┘
-                 │                     │
-                 └──────────┬──────────┘
-                            ▼
-                    ┌──────────────┐
-                    │     LLM      │
-                    │ Legal Model  │
-                    └──────┬───────┘
-                           │
-                           ▼
-                    ┌──────────────┐
-                    │   Response   │
-                    └──────────────┘
+                         ┌──────────────────┐
+                         │    Frontend      │
+                         │       (FE)       │
+                         └────────┬─────────┘
+                                  │
+                                  ▼
+                         ┌──────────────────┐
+                         │     FastAPI      │
+                         │     Backend      │
+                         └────────┬─────────┘
+                                  │
+                     ┌────────────┴────────────┐
+                     │                         │
+                     ▼                         ▼
+              ┌──────────────┐         ┌──────────────┐
+              │     RAG      │         │     MCP      │
+              │  Retrieval   │         │    Server    │
+              └──────┬───────┘         └──────┬───────┘
+                     │                         │
+                     └────────────┬────────────┘
+                                  ▼
+                         ┌──────────────────┐
+                         │       LLM        │
+                         │   Legal Model    │
+                         └────────┬─────────┘
+                                  │
+                                  ▼
+                         ┌──────────────────┐
+                         │     Response     │
+                         └──────────────────┘
 ```
 
 ---
@@ -61,12 +62,8 @@ The main goal of the project is to build a prototype legal AI system that can pr
 DAI-Legal-Model/
 │
 ├── backend/                  # Backend services
-│
 ├── FE/                       # Frontend application
-│
 ├── dataset/                  # Dataset and legal documents
-│
-├── outputs/                  # Training/model outputs
 │
 ├── ai_service.py             # AI service
 ├── demo_model.py             # Model demonstration
@@ -80,9 +77,12 @@ DAI-Legal-Model/
 ├── test_trained_v2.py        # Test trained model V2
 │
 ├── train.py                  # Model training
+├── requirements.txt          # Python dependencies
 ├── .gitignore                # Git ignore configuration
 └── README.md                 # Project documentation
 ```
+
+> `outputs/`, `.venv/`, `__pycache__/`, model checkpoints, and other large/generated files are excluded from Git using `.gitignore`.
 
 ---
 
@@ -91,7 +91,7 @@ DAI-Legal-Model/
 | Component | Technology |
 |---|---|
 | Programming Language | Python |
-| LLM | Qwen |
+| Large Language Model | Qwen |
 | Fine-tuning | LoRA / PEFT |
 | Retrieval | RAG |
 | AI Tool Integration | MCP |
@@ -102,16 +102,16 @@ DAI-Legal-Model/
 
 ---
 
-## 🚀 Installation
+# 🚀 Installation
 
-### 1. Clone the repository
+## 1. Clone the repository
 
 ```bash
 git clone https://github.com/AnNguyen0806/DAI-Legal-Model.git
 cd DAI-Legal-Model
 ```
 
-### 2. Create a virtual environment
+## 2. Create a Python virtual environment
 
 Windows:
 
@@ -125,37 +125,58 @@ Activate the environment:
 .venv\Scripts\activate
 ```
 
-### 3. Install dependencies
+After activation, the terminal should show something similar to:
 
-If the project contains `requirements.txt`:
+```text
+(.venv) D:\DAI-Legal-Model>
+```
+
+## 3. Install dependencies
 
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-If dependencies are not yet defined, install the required packages according to the individual Python modules.
+---
+
+# 🤖 Model
+
+The project uses **Qwen** as the base Large Language Model.
+
+The repository contains scripts for:
+
+- Base model testing
+- Fine-tuning
+- LoRA / PEFT training
+- Trained model testing
+- Model evaluation
+
+Large model files and checkpoints are intentionally excluded from GitHub.
 
 ---
 
-## 🧠 Model Training
+# 🧠 Model Training
 
-The project contains scripts for training and testing the legal language model.
-
-Main training script:
+The main training script is:
 
 ```bash
 python train.py
 ```
 
-Training outputs are stored locally in the `outputs/` directory.
+Training outputs are stored locally in:
 
-> Model checkpoints and large model files are excluded from GitHub using `.gitignore`.
+```text
+outputs/
+```
+
+The `outputs/` directory is excluded from GitHub to avoid uploading large model checkpoints.
 
 ---
 
-## 🔎 RAG Pipeline
+# 🔎 RAG Pipeline
 
-The RAG pipeline follows the general process:
+The RAG pipeline follows this process:
 
 ```text
 User Question
@@ -179,35 +200,39 @@ LLM
 Generated Answer
 ```
 
-RAG helps the system retrieve relevant legal information before generating an answer, reducing the risk of generating responses without supporting context.
+RAG allows the system to retrieve relevant legal information and provide it as context to the language model before generating an answer.
 
 ---
 
-## 🔌 MCP Integration
+# 🔌 MCP Integration
 
-The project uses **Model Context Protocol (MCP)** to provide a standardized way for the AI system to interact with external tools and services.
+The project uses **Model Context Protocol (MCP)** to provide a standardized interface between the AI system and external tools or services.
 
-MCP server:
+The MCP server is implemented in:
+
+```text
+mcp_server.py
+```
+
+Run the MCP server with:
 
 ```bash
 python mcp_server.py
 ```
 
-The MCP layer can be extended with additional tools depending on the requirements of the project.
-
 ---
 
-## 🌐 Running the API
+# 🌐 Running the Backend API
 
-The backend is implemented using FastAPI.
+The backend API uses **FastAPI**.
 
-Example:
+Run:
 
 ```bash
 uvicorn model_api:app --reload
 ```
 
-The API can then be accessed locally through:
+The API will be available at:
 
 ```text
 http://127.0.0.1:8000
@@ -221,21 +246,39 @@ http://127.0.0.1:8000/docs
 
 ---
 
-## 🧪 Model Testing
+# 🖥️ Frontend
 
-Test the base Qwen model:
+The frontend source code is located in:
+
+```text
+FE/
+```
+
+Navigate to the frontend directory:
+
+```bash
+cd FE
+```
+
+The exact frontend installation and startup commands depend on the frontend framework and package configuration.
+
+---
+
+# 🧪 Model Testing
+
+### Test the base Qwen model
 
 ```bash
 python test_qwen.py
 ```
 
-Test the trained model:
+### Test the trained model
 
 ```bash
 python test_trained.py
 ```
 
-Test the second trained version:
+### Test trained model V2
 
 ```bash
 python test_trained_v2.py
@@ -243,9 +286,9 @@ python test_trained_v2.py
 
 ---
 
-## 📊 Model Evaluation
+# 📊 Model Evaluation
 
-Run evaluation:
+Run the evaluation script:
 
 ```bash
 python evaluate.py
@@ -257,62 +300,83 @@ Evaluation results are stored in:
 evaluation_results.json
 ```
 
-The evaluation process is used to compare model responses and assess the performance of the trained model.
+---
+
+# 🧩 Demo
+
+The project contains a model demonstration script:
+
+```bash
+python demo_model.py
+```
+
+Depending on the current configuration, additional services such as the FastAPI backend, MCP server, or frontend may need to be started separately.
 
 ---
 
-## 👥 Team Collaboration
+# 👥 Team Collaboration
 
 This repository is used for collaborative development.
 
-### Recommended workflow
+## Recommended Git workflow
 
-Before starting work:
+Do not directly modify `main` when working on a new feature.
+
+Create a feature branch:
 
 ```bash
-git pull origin main
+git checkout -b feature/your-feature-name
+```
+
+Example:
+
+```bash
+git checkout -b feature/rag
 ```
 
 After modifying the code:
 
 ```bash
 git add .
-git commit -m "Describe your changes"
-git push origin main
+git commit -m "Add RAG functionality"
+git push -u origin feature/rag
 ```
 
-For larger features, create a separate branch:
+Then create a **Pull Request** on GitHub to merge the feature branch into `main`.
+
+### Before starting new work
 
 ```bash
-git checkout -b feature-name
+git checkout main
+git pull origin main
 ```
 
-Then push the branch:
+Then create a new feature branch:
 
 ```bash
-git push -u origin feature-name
+git checkout -b feature/your-feature-name
 ```
 
-After testing, create a Pull Request to merge the changes into `main`.
+### Recommended branch structure
 
-### Important
+```text
+main
+│
+├── feature/backend
+├── feature/frontend
+├── feature/rag
+└── feature/ai-model
+```
 
-Do not commit:
-
-- `.venv/`
-- `__pycache__/`
-- `.env`
-- Large model files
-- Training checkpoints
-- Temporary files
-
-These files are excluded using `.gitignore`.
+The `main` branch should contain the stable version of the project.
 
 ---
 
-## 🔐 Security
+# 🔐 Security
 
-Do not commit sensitive information such as:
+Never commit sensitive information to GitHub.
+
+Do not upload:
 
 ```text
 .env
@@ -326,17 +390,41 @@ Use environment variables for sensitive configuration.
 
 ---
 
-## 🛠️ Development Status
+# 🚫 Files Excluded From Git
+
+The following files/directories are excluded through `.gitignore`:
+
+```text
+.venv/
+__pycache__/
+outputs/
+checkpoints/
+runs/
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.gguf
+.env
+```
+
+Large model checkpoints should be stored separately rather than committed directly to the repository.
+
+---
+
+# 🛠️ Development Status
 
 Current project components:
 
 - [x] LLM model testing
-- [x] Model fine-tuning
-- [x] LoRA training
+- [x] Qwen model integration
+- [x] LoRA / PEFT fine-tuning
 - [x] Model evaluation
 - [x] FastAPI backend
 - [x] MCP server
-- [x] RAG architecture
+- [x] Initial RAG architecture
+- [x] Dataset integration
+- [x] Frontend application
 - [ ] Further RAG optimization
 - [ ] Improve legal-domain evaluation
 - [ ] Improve frontend
@@ -345,7 +433,7 @@ Current project components:
 
 ---
 
-## 📚 Project Goal
+# 🎯 Project Goal
 
 The project aims to develop an AI legal assistant capable of:
 
@@ -353,19 +441,22 @@ The project aims to develop an AI legal assistant capable of:
 2. Retrieving relevant legal information.
 3. Using retrieved context to generate answers.
 4. Connecting with external tools through MCP.
-5. Providing a practical interface for users.
-6. Improving answer reliability through RAG and domain-specific fine-tuning.
+5. Providing a practical user interface.
+6. Improving answer reliability through RAG.
+7. Applying domain-specific fine-tuning to the legal language model.
 
 ---
 
-## ⚠️ Disclaimer
+# ⚠️ Disclaimer
 
 This project is an academic/research prototype.
 
-The generated information should not be considered a substitute for professional legal advice. Users should verify important legal information against official legal documents and consult qualified legal professionals when necessary.
+The generated information should **not** be considered a substitute for professional legal advice.
+
+Users should verify important legal information against official legal documents and consult qualified legal professionals when necessary.
 
 ---
 
-## 📄 License
+# 📄 License
 
-This project is currently for academic and research purposes.
+This project is currently intended for academic and research purposes.
