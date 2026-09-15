@@ -1,0 +1,152 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "procedures",
+  "dataset_name": "dichvucong-gov-vn",
+  "dataset_size": 55509146,
+  "description": "",
+  "download_size": 6649228,
+  "features": {
+    "doc_name": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "formality_id": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "target_type": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "code": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "procedure_name": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "decision_no": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "category_name": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "department_promulgate": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "is_ministry": {
+      "dtype": "bool",
+      "_type": "Value"
+    },
+    "is_province": {
+      "dtype": "bool",
+      "_type": "Value"
+    },
+    "is_ward": {
+      "dtype": "bool",
+      "_type": "Value"
+    },
+    "is_vertical": {
+      "dtype": "bool",
+      "_type": "Value"
+    },
+    "is_full_process": {
+      "dtype": "bool",
+      "_type": "Value"
+    },
+    "description": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "execution_steps": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "execution_methods": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "profile_components": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "requirements_conditions": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "fees": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "legal_basis": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "results": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "target_objects": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "executing_agencies": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "coordinating_agencies": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "keywords": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "content_text": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "content_char_len": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "source": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "source_url": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "content_hash": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "scraped_at": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 62158374,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 55509146,
+      "num_examples": 3927,
+      "dataset_name": "dichvucong-gov-vn"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

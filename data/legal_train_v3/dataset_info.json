@@ -1,0 +1,64 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "vietnamese-legal-instruct",
+  "dataset_size": 1492479005,
+  "description": "",
+  "download_size": 1484046193,
+  "features": {
+    "qa_type": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "conversations": {
+      "feature": {
+        "content": {
+          "dtype": "string",
+          "_type": "Value"
+        },
+        "role": {
+          "dtype": "string",
+          "_type": "Value"
+        }
+      },
+      "_type": "List"
+    },
+    "source_id": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "document_type": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 2976525198,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 1417742291,
+      "num_examples": 222172,
+      "shard_lengths": [
+        89727,
+        89726,
+        42719
+      ],
+      "dataset_name": "vietnamese-legal-instruct"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 74736714,
+      "num_examples": 11694,
+      "dataset_name": "vietnamese-legal-instruct"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

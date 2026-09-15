@@ -1,0 +1,18 @@
+{
+  "_data_files": [
+    {
+      "filename": "data-00000-of-00001.arrow"
+    }
+  ],
+  "_fingerprint": "c8408126b6c1da68",
+  "_format_columns": [
+    "conversations",
+    "document_type",
+    "qa_type",
+    "source_id"
+  ],
+  "_format_kwargs": {},
+  "_format_type": null,
+  "_output_all_columns": false,
+  "_split": null
+}
