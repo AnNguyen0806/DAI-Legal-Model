@@ -1,58 +1,64 @@
 # DAI-Legal-Model
 
-AI Legal Assistant using Large Language Model (LLM), Retrieval-Augmented Generation (RAG), and Model Context Protocol (MCP).
+AI Legal Assistant using **Qwen2.5-7B-Instruct**, **QLoRA/LoRA**, **Retrieval-Augmented Generation (RAG)**, **Model Context Protocol (MCP)**, **Qdrant**, **FastAPI**, and a web frontend.
 
 ## 📌 Overview
 
-DAI-Legal-Model is an AI-powered legal assistant designed to support users in searching, retrieving, and understanding legal information.
+DAI-Legal-Model is an academic/research prototype for a Vietnamese legal assistant. The system combines a domain-adapted language model with retrieval of legal administrative-procedure data before answer generation.
 
-The system combines:
+### Main components
 
-- **Large Language Model (LLM)** for natural language understanding and answer generation.
-- **Retrieval-Augmented Generation (RAG)** for retrieving relevant legal documents before generating responses.
-- **Model Context Protocol (MCP)** for connecting the AI system with external tools and services.
-- **FastAPI** for backend API services.
-- **Frontend (FE)** for user interaction.
-- **LoRA / PEFT** for domain-specific model fine-tuning.
-
-This project is developed as an academic/research prototype for applying LLM, RAG, MCP, and fine-tuning techniques to the legal domain.
+- **LLM:** Qwen2.5-7B-Instruct
+- **Fine-tuning:** QLoRA / LoRA / PEFT
+- **RAG:** semantic retrieval of legal procedures from Qdrant
+- **Vector database:** Qdrant
+- **MCP:** tool interface for legal-document and procedure search
+- **Model API:** FastAPI service on port `8001`
+- **Core API:** FastAPI service on port `8000`
+- **Frontend:** web application on port `5173`
+- **Embedding model:** `bkai-foundation-models/vietnamese-bi-encoder`
+- **Hardware tested:** NVIDIA RTX 4070 12GB
 
 ---
 
 ## 🏗️ System Architecture
 
 ```text
-                         ┌──────────────────┐
-                         │    Frontend      │
-                         │       (FE)       │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │     FastAPI      │
-                         │     Backend      │
-                         └────────┬─────────┘
-                                  │
-                     ┌────────────┴────────────┐
-                     │                         │
-                     ▼                         ▼
-              ┌──────────────┐         ┌──────────────┐
-              │     RAG      │         │     MCP      │
-              │  Retrieval   │         │    Server    │
-              └──────┬───────┘         └──────┬───────┘
-                     │                         │
-                     └────────────┬────────────┘
-                                  ▼
-                         ┌──────────────────┐
-                         │       LLM        │
-                         │   Legal Model    │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │     Response     │
-                         └──────────────────┘
+┌──────────────────────┐
+│      Frontend        │
+│   localhost:5173     │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│      Core API        │
+│   FastAPI :8000      │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│      MCP Server      │
+│     stdio tools      │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│       Qdrant         │
+│    legal_docs        │
+└──────────┬───────────┘
+           │ retrieved context
+           ▼
+┌──────────────────────┐
+│      Model API       │
+│   FastAPI :8001      │
+│ Qwen2.5-7B + LoRA V3 │
+└──────────┬───────────┘
+           │
+           ▼
+      Generated Answer
 ```
+
+The current pipeline uses **RAG for factual grounding** and **LoRA fine-tuning for domain-specific response behavior**. Retrieved legal-procedure context is provided to Qwen before answer generation.
 
 ---
 
@@ -61,44 +67,210 @@ This project is developed as an academic/research prototype for applying LLM, RA
 ```text
 DAI-Legal-Model/
 │
-├── backend/                  # Backend services
-├── FE/                       # Frontend application
-├── dataset/                  # Dataset and legal documents
+├── backend/
+│   ├── main.py                    # Core API / RAG orchestration
+│   └── import_dvc_to_qdrant.py    # Import DVC dataset into Qdrant
 │
-├── ai_service.py             # AI service
-├── demo_model.py             # Model demonstration
-├── evaluate.py               # Model evaluation
-├── evaluation_results.json   # Evaluation results
-├── mcp_server.py             # MCP server
-├── model_api.py              # Model API
+├── FE/                            # Frontend application
 │
-├── test_qwen.py              # Test base Qwen model
-├── test_trained.py           # Test trained model
-├── test_trained_v2.py        # Test trained model V2
+├── data/                          # Local datasets (Git LFS)
+│   ├── dichvucong_procedures/
+│   ├── legal_train_v3/
+│   └── vietnamese-legal-instruct/
 │
-├── train.py                  # Model training
-├── requirements.txt          # Python dependencies
-├── .gitignore                # Git ignore configuration
-└── README.md                 # Project documentation
+├── dataset/                       # Earlier project dataset
+│
+├── mcp_server.py                  # MCP legal search tools
+├── model_api.py                   # Qwen + LoRA inference API
+├── train_v3.py                    # QLoRA V3 training
+├── test_trained_v3.py             # V3 model testing
+├── download_dvc_dataset.py        # Download DVC procedure dataset
+├── download_legal_dataset.py      # Download legal instruction dataset
+├── prepare_legal_dataset.py       # Prepare/filter training data
+├── check_dataset.py               # Dataset inspection
+│
+├── train.py                       # Earlier training script
+├── test_qwen.py                   # Base model test
+├── test_trained.py                # Earlier trained model test
+├── test_trained_v2.py             # V2 model test
+├── evaluate.py                    # Evaluation script
+├── demo_model.py                  # Model demo
+├── requirements.txt               # Python dependencies
+├── .gitignore                     # Git ignore rules
+├── .gitattributes                 # Git LFS configuration
+└── README.md                      # Project documentation
 ```
 
-> `outputs/`, `.venv/`, `__pycache__/`, model checkpoints, and other large/generated files are excluded from Git using `.gitignore`.
+> Model checkpoints in `outputs/` and the Python virtual environment are not stored in Git. The large dataset files under `data/` are tracked with **Git LFS**.
 
 ---
 
-## ⚙️ Technologies
+## 🤖 Model
 
-| Component | Technology |
-|---|---|
-| Programming Language | Python |
-| Large Language Model | Qwen |
-| Fine-tuning | LoRA / PEFT |
-| Retrieval | RAG |
-| AI Tool Integration | MCP |
-| Backend | FastAPI |
-| Frontend | FE |
-| API Communication | HTTP |
-| Version Control | Git / GitHub |
+The current model uses:
+
+```text
+Base model: Qwen/Qwen2.5-7B-Instruct
+Fine-tuning: QLoRA / LoRA
+Adapter: outputs/qwen-legal-lora-v3
+Quantization: 4-bit NF4
+GPU tested: RTX 4070 12GB
+```
+
+The V3 adapter was trained on Vietnamese legal instruction data. Fine-tuning is intended to improve legal-domain response behavior, while RAG provides the factual context used for current procedure information.
+
+---
+
+## 🧠 Model Training — V3
+
+The V3 training data is prepared from the Vietnamese legal instruction dataset and saved locally in:
+
+```text
+ data/legal_train_v3/
+```
+
+Training is performed with `train_v3.py`.
+
+```bash
+python train_v3.py
+```
+
+The current V3 configuration uses QLoRA with 4-bit NF4 quantization, LoRA adapters, BF16, gradient checkpointing, gradient accumulation, and paged AdamW 8-bit optimization.
+
+The trained adapter is saved to:
+
+```text
+outputs/qwen-legal-lora-v3/
+```
+
+> `outputs/` is excluded from the Git repository because model checkpoints are large. The training scripts remain in Git so the training process can be reproduced when the required base model and datasets are available.
+
+---
+
+## 📚 Datasets
+
+### 1. Vietnamese Legal Instruction Dataset
+
+Source:
+
+```text
+HF: duyet/vietnamese-legal-instruct
+```
+
+Used primarily for legal-domain instruction fine-tuning.
+
+### 2. National Public Service Portal Procedure Dataset
+
+Source:
+
+```text
+HF: tmquan/dichvucong-gov-vn
+```
+
+Used for the RAG knowledge base. It contains Vietnamese administrative procedures sourced from the National Public Service Portal.
+
+The downloaded dataset is stored in:
+
+```text
+data/dichvucong_procedures/
+```
+
+### 3. Prepared V3 training dataset
+
+```text
+data/legal_train_v3/
+```
+
+This is the processed dataset used by `train_v3.py`.
+
+---
+
+## 🔎 RAG Pipeline
+
+```text
+User Question
+      │
+      ▼
+Core API :8000
+      │
+      ▼
+MCP search_legal_documents
+      │
+      ▼
+Qdrant: legal_docs
+      │
+      ▼
+Relevant legal procedure context
+      │
+      ▼
+Prompt + retrieved context
+      │
+      ▼
+Model API :8001
+      │
+      ▼
+Qwen2.5-7B-Instruct + LoRA V3
+      │
+      ▼
+Grounded answer
+```
+
+The MCP retrieval layer prioritizes an exact procedure-name match when possible and then fills the remaining results with semantically relevant documents.
+
+---
+
+## 🔌 MCP Integration
+
+The MCP server is implemented in:
+
+```text
+mcp_server.py
+```
+
+Current tools include:
+
+- `search_legal_documents`
+- `search_procedure`
+
+The Core API launches the MCP server as a subprocess, so a separate MCP terminal is normally **not required** when running the full application.
+
+For standalone MCP testing:
+
+```bash
+python mcp_server.py
+```
+
+---
+
+## 🗄️ Qdrant
+
+The project uses Qdrant as the vector database.
+
+Default address:
+
+```text
+http://localhost:6333
+```
+
+Collection:
+
+```text
+legal_docs
+```
+
+Qdrant can be run through Docker. Example:
+
+```bash
+docker compose up -d
+```
+
+After downloading the DVC dataset, import it into Qdrant with:
+
+```bash
+python backend/import_dvc_to_qdrant.py
+```
+
+> The import script adds the DVC procedure data to the existing `legal_docs` collection and does not delete the existing collection.
 
 ---
 
@@ -111,27 +283,34 @@ git clone https://github.com/AnNguyen0806/DAI-Legal-Model.git
 cd DAI-Legal-Model
 ```
 
-## 2. Create a Python virtual environment
+## 2. Git LFS
+
+The project stores large dataset files with Git LFS.
+
+Install Git LFS and run:
+
+```bash
+git lfs install
+```
+
+Then retrieve LFS files after cloning:
+
+```bash
+git lfs pull
+```
+
+> The current dataset is several GB, so cloning/pulling the repository requires sufficient disk space and Git LFS bandwidth/storage quota.
+
+## 3. Create Python environment
 
 Windows:
 
 ```bash
 python -m venv .venv
-```
-
-Activate the environment:
-
-```bash
 .venv\Scripts\activate
 ```
 
-After activation, the terminal should show something similar to:
-
-```text
-(.venv) D:\DAI-Legal-Model>
-```
-
-## 3. Install dependencies
+## 4. Install dependencies
 
 ```bash
 python -m pip install --upgrade pip
@@ -140,131 +319,104 @@ pip install -r requirements.txt
 
 ---
 
-# 🤖 Model
+# 📥 Download Datasets
 
-The project uses **Qwen** as the base Large Language Model.
-
-The repository contains scripts for:
-
-- Base model testing
-- Fine-tuning
-- LoRA / PEFT training
-- Trained model testing
-- Model evaluation
-
-Large model files and checkpoints are intentionally excluded from GitHub.
-
----
-
-# 🧠 Model Training
-
-The main training script is:
+If the datasets are not already available locally, run:
 
 ```bash
-python train.py
+python download_dvc_dataset.py
 ```
 
-Training outputs are stored locally in:
-
-```text
-outputs/
-```
-
-The `outputs/` directory is excluded from GitHub to avoid uploading large model checkpoints.
-
----
-
-# 🔎 RAG Pipeline
-
-The RAG pipeline follows this process:
-
-```text
-User Question
-      │
-      ▼
-Query Processing
-      │
-      ▼
-Document Retrieval
-      │
-      ▼
-Relevant Legal Documents
-      │
-      ▼
-Context + User Question
-      │
-      ▼
-LLM
-      │
-      ▼
-Generated Answer
-```
-
-RAG allows the system to retrieve relevant legal information and provide it as context to the language model before generating an answer.
-
----
-
-# 🔌 MCP Integration
-
-The project uses **Model Context Protocol (MCP)** to provide a standardized interface between the AI system and external tools or services.
-
-The MCP server is implemented in:
-
-```text
-mcp_server.py
-```
-
-Run the MCP server with:
+and:
 
 ```bash
-python mcp_server.py
+python download_legal_dataset.py
 ```
 
----
-
-# 🌐 Running the Backend API
-
-The backend API uses **FastAPI**.
-
-Run:
+Prepare the V3 training dataset with:
 
 ```bash
-uvicorn model_api:app --reload
+python prepare_legal_dataset.py
 ```
 
-The API will be available at:
-
-```text
-http://127.0.0.1:8000
-```
-
-FastAPI documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-# 🖥️ Frontend
-
-The frontend source code is located in:
-
-```text
-FE/
-```
-
-Navigate to the frontend directory:
+Inspect the dataset with:
 
 ```bash
-cd FE
+python check_dataset.py
 ```
-
-The exact frontend installation and startup commands depend on the frontend framework and package configuration.
 
 ---
 
-# 🧪 Model Testing
+# ▶️ Running the Full System
+
+The current system uses three main services.
+
+## 1. Start Model API — Port 8001
+
+From the project root:
+
+```powershell
+cd D:\DAI-Legal-Model
+.\.venv\Scripts\activate
+python model_api.py
+```
+
+The service runs at:
+
+```text
+http://localhost:8001
+```
+
+## 2. Start Core API — Port 8000
+
+Open another terminal:
+
+```powershell
+cd D:\DAI-Legal-Model
+.\.venv\Scripts\activate
+python backend\main.py
+```
+
+The service runs at:
+
+```text
+http://localhost:8000
+```
+
+Core API responsibilities include:
+
+- receiving frontend requests
+- calling MCP tools
+- retrieving legal context from Qdrant
+- constructing the grounded prompt
+- calling the Model API
+- streaming the answer back to the frontend
+
+## 3. Start Frontend — Port 5173
+
+Open another terminal:
+
+```powershell
+cd D:\DAI-Legal-Model\FE
+npm install
+npm run dev
+```
+
+The frontend is available at:
+
+```text
+http://localhost:5173/
+```
+
+---
+
+# 🧪 Testing
+
+### Test V3 model directly
+
+```bash
+python test_trained_v3.py
+```
 
 ### Test the base Qwen model
 
@@ -272,103 +424,49 @@ The exact frontend installation and startup commands depend on the frontend fram
 python test_qwen.py
 ```
 
-### Test the trained model
+### Earlier model tests
 
 ```bash
 python test_trained.py
-```
-
-### Test trained model V2
-
-```bash
 python test_trained_v2.py
 ```
 
----
-
-# 📊 Model Evaluation
-
-Run the evaluation script:
+### Evaluation
 
 ```bash
 python evaluate.py
 ```
 
-Evaluation results are stored in:
-
-```text
-evaluation_results.json
-```
-
 ---
 
-# 🧩 Demo
+# 🧪 Suggested RAG Tests
 
-The project contains a model demonstration script:
-
-```bash
-python demo_model.py
-```
-
-Depending on the current configuration, additional services such as the FastAPI backend, MCP server, or frontend may need to be started separately.
-
----
-
-# 👥 Team Collaboration
-
-This repository is used for collaborative development.
-
-## Recommended Git workflow
-
-Do not directly modify `main` when working on a new feature.
-
-Create a feature branch:
-
-```bash
-git checkout -b feature/your-feature-name
-```
-
-Example:
-
-```bash
-git checkout -b feature/rag
-```
-
-After modifying the code:
-
-```bash
-git add .
-git commit -m "Add RAG functionality"
-git push -u origin feature/rag
-```
-
-Then create a **Pull Request** on GitHub to merge the feature branch into `main`.
-
-### Before starting new work
-
-```bash
-git checkout main
-git pull origin main
-```
-
-Then create a new feature branch:
-
-```bash
-git checkout -b feature/your-feature-name
-```
-
-### Recommended branch structure
+Example questions for evaluating retrieval and grounding:
 
 ```text
-main
-│
-├── feature/backend
-├── feature/frontend
-├── feature/rag
-└── feature/ai-model
+1. Thủ tục đăng ký tạm trú cần những giấy tờ gì?
+2. Đăng ký tạm trú có mất phí không?
+3. Đăng ký tạm trú mất bao lâu?
+4. Có thể đăng ký tạm trú online không?
+5. Thủ tục xóa đăng ký tạm trú cần những gì?
+6. Thủ tục gia hạn tạm trú thực hiện như thế nào?
+7. Đăng ký kết hôn cần những giấy tờ gì?
+8. Đăng ký kết hôn mất bao lâu?
+9. Chứng thực chữ ký cần những giấy tờ gì?
+10. Chứng thực chữ ký mất bao lâu?
+11. Cấp bản sao trích lục hộ tịch cần hồ sơ gì?
+12. Thủ tục cấp giấy khai sinh cần những giấy tờ gì?
+13. Thủ tục cấp hộ chiếu cần những giấy tờ gì?
+14. Thủ tục đăng ký xe cần những giấy tờ gì?
+15. Thủ tục không tồn tại trong dữ liệu cần những gì?
 ```
 
-The `main` branch should contain the stable version of the project.
+Evaluation should consider:
+
+- **Retrieval quality** — whether the relevant procedure is retrieved.
+- **Grounding** — whether the answer follows the retrieved legal context.
+- **Hallucination** — whether unsupported facts are introduced.
+- **Answer quality** — clarity, completeness, and relevance.
 
 ---
 
@@ -390,46 +488,45 @@ Use environment variables for sensitive configuration.
 
 ---
 
-# 🚫 Files Excluded From Git
+# 🚫 Large / Generated Files
 
-The following files/directories are excluded through `.gitignore`:
+The following types of files should normally not be committed directly to Git:
 
 ```text
 .venv/
 __pycache__/
 outputs/
-checkpoints/
-runs/
-*.bin
 *.safetensors
+*.bin
 *.pt
 *.pth
 *.gguf
 .env
 ```
 
-Large model checkpoints should be stored separately rather than committed directly to the repository.
+Large datasets under `data/` are currently tracked using **Git LFS**.
 
 ---
 
 # 🛠️ Development Status
 
-Current project components:
-
-- [x] LLM model testing
-- [x] Qwen model integration
-- [x] LoRA / PEFT fine-tuning
-- [x] Model evaluation
-- [x] FastAPI backend
+- [x] Qwen2.5-7B-Instruct integration
+- [x] QLoRA / LoRA fine-tuning
+- [x] LoRA V3 training
+- [x] V3 model testing
+- [x] Qdrant vector database
+- [x] Legal procedure RAG
 - [x] MCP server
-- [x] Initial RAG architecture
-- [x] Dataset integration
+- [x] Core FastAPI API
+- [x] Model FastAPI API
 - [x] Frontend application
-- [ ] Further RAG optimization
-- [ ] Improve legal-domain evaluation
-- [ ] Improve frontend
-- [ ] Integrate additional legal tools
-- [ ] Final system integration
+- [x] DVC administrative-procedure dataset integration
+- [x] Git LFS dataset storage
+- [ ] Further RAG retrieval optimization
+- [ ] More comprehensive legal-domain evaluation
+- [ ] Further hallucination reduction
+- [ ] Additional legal tools
+- [ ] Production deployment
 
 ---
 
@@ -437,13 +534,13 @@ Current project components:
 
 The project aims to develop an AI legal assistant capable of:
 
-1. Understanding natural-language legal questions.
-2. Retrieving relevant legal information.
-3. Using retrieved context to generate answers.
-4. Connecting with external tools through MCP.
-5. Providing a practical user interface.
-6. Improving answer reliability through RAG.
-7. Applying domain-specific fine-tuning to the legal language model.
+1. Understanding natural-language Vietnamese legal questions.
+2. Retrieving relevant administrative procedures from a vector database.
+3. Using retrieved context to ground generated answers.
+4. Connecting the model to external tools through MCP.
+5. Applying domain-specific LoRA fine-tuning.
+6. Providing an interactive web interface.
+7. Reducing hallucination through retrieval and grounding.
 
 ---
 
@@ -451,12 +548,10 @@ The project aims to develop an AI legal assistant capable of:
 
 This project is an academic/research prototype.
 
-The generated information should **not** be considered a substitute for professional legal advice.
-
-Users should verify important legal information against official legal documents and consult qualified legal professionals when necessary.
+Generated information should **not** be considered a substitute for professional legal advice. Important legal information should be verified against official legal documents and current government sources.
 
 ---
 
 # 📄 License
 
-This project is currently intended for academic and research purposes.
+This project is currently intended for academic and research purposes. Dataset licenses and source terms should be respected when redistributing or using the included data.
