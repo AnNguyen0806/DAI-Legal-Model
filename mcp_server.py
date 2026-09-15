@@ -1,125 +1,224 @@
-from mcp.server import MCPServer
+import os
 
+from mcp.server import MCPServer
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 
 
-# =========================================================
-# 1. MCP SERVER
-# =========================================================
+# ==========================================
+# MCP SERVER
+# ==========================================
 
 mcp = MCPServer("DAI Legal MCP")
 
 
-# =========================================================
-# 2. QDRANT
-# =========================================================
+# ==========================================
+# CONFIG
+# ==========================================
 
 QDRANT_URL = "http://localhost:6333"
 COLLECTION_NAME = "legal_docs"
 
+EMBEDDING_MODEL = "bkai-foundation-models/vietnamese-bi-encoder"
 
 
-qdrant_client = QdrantClient(QDRANT_URL)
+# ==========================================
+# QDRANT
+# ==========================================
 
+client = QdrantClient(QDRANT_URL)
 
+print("Đang load embedding model...", file=__import__("sys").stderr)
 
 embedding_model = SentenceTransformer(
-    "bkai-foundation-models/vietnamese-bi-encoder"
+    EMBEDDING_MODEL
 )
 
+print("Embedding model OK", file=__import__("sys").stderr)
 
 
+# ==========================================
+# SEARCH
+# ==========================================
 
-# =========================================================
-# 3. TOOL: SEARCH LEGAL DOCUMENTS
-# =========================================================
+def search_qdrant(query: str, limit: int = 10):
+
+    vector = embedding_model.encode(
+        query
+    ).tolist()
+
+    result = client.query_points(
+        collection_name=COLLECTION_NAME,
+        query=vector,
+        limit=limit,
+        with_payload=True,
+    )
+
+    return result.points
+
+
+# ==========================================
+# TOOL: SEARCH LEGAL DOCUMENTS
+# ==========================================
 
 @mcp.tool()
 def search_legal_documents(query: str) -> list[str]:
+
     """
-    Tìm kiếm các văn bản pháp luật và thủ tục hành chính
+    Tìm kiếm thủ tục hành chính và văn bản pháp luật
     liên quan đến câu hỏi của người dùng.
     """
 
-    try:
+    query_lower = query.lower().strip()
 
-        # Chuyển câu hỏi thành vector
-        query_vector = embedding_model.encode(
-            query
-        ).tolist()
+    points = search_qdrant(
+        query,
+        limit=10
+    )
 
-        # Tìm kiếm Qdrant
-        response = qdrant_client.query_points(
-            collection_name=COLLECTION_NAME,
-            query=query_vector,
-            limit=5
-        )
+    # ==========================================
+    # ƯU TIÊN TÊN THỦ TỤC KHỚP TRUY VẤN
+    # ==========================================
 
-        results = []
+    exact_matches = []
+    other_matches = []
 
-        for point in response.points:
+    for point in points:
 
-            if point.payload and "text" in point.payload:
+        payload = point.payload or {}
 
-                results.append(
-                    point.payload["text"]
+        procedure_name = str(
+            payload.get(
+                "thu_tuc",
+                ""
+            )
+        ).strip()
+
+        procedure_lower = procedure_name.lower()
+
+        text = str(
+            payload.get(
+                "text",
+                ""
+            )
+        ).strip()
+
+        # Nếu tên thủ tục xuất hiện trong câu hỏi
+        if (
+            procedure_lower
+            and procedure_lower in query_lower
+        ):
+
+            exact_matches.append(
+                (
+                    point.score,
+                    text
                 )
+            )
 
-        return results
+        else:
 
-    except Exception as e:
+            other_matches.append(
+                (
+                    point.score,
+                    text
+                )
+            )
 
-        return [
-            f"Lỗi khi tìm kiếm dữ liệu pháp luật: {str(e)}"
-        ]
+
+    # ==========================================
+    # ƯU TIÊN CÁC KẾT QUẢ KHỚP TÊN
+    # ==========================================
+
+    exact_matches.sort(
+        key=lambda x: x[0],
+        reverse=True
+    )
+
+    other_matches.sort(
+        key=lambda x: x[0],
+        reverse=True
+    )
 
 
-# =========================================================
-# 4. TOOL: SEARCH PROCEDURES
-# =========================================================
+    # ==========================================
+    # LẤY KẾT QUẢ
+    # ==========================================
+
+    selected = []
+
+    # Tối đa 3 kết quả khớp tên thủ tục
+    for score, text in exact_matches[:3]:
+
+        selected.append(text)
+
+
+    # Nếu chưa đủ 5 kết quả,
+    # bổ sung semantic search
+    for score, text in other_matches:
+
+        if len(selected) >= 5:
+            break
+
+        selected.append(text)
+
+
+    # ==========================================
+    # FALLBACK
+    # ==========================================
+
+    if not selected:
+
+        for point in points[:5]:
+
+            payload = point.payload or {}
+
+            text = str(
+                payload.get(
+                    "text",
+                    ""
+                )
+            ).strip()
+
+            if text:
+                selected.append(text)
+
+
+    print(
+        f"MCP SEARCH: {query}",
+        file=__import__("sys").stderr
+    )
+
+    print(
+        f"MCP RESULTS: {len(selected)}",
+        file=__import__("sys").stderr
+    )
+
+    return selected
+
+
+# ==========================================
+# TOOL: SEARCH PROCEDURE
+# ==========================================
 
 @mcp.tool()
 def search_procedure(keyword: str) -> list[str]:
+
     """
-    Tìm kiếm thủ tục hành chính theo từ khóa.
+    Tìm thủ tục hành chính theo từ khóa.
     """
 
-    try:
-
-        query_vector = embedding_model.encode(
-            keyword
-        ).tolist()
-
-        response = qdrant_client.query_points(
-            collection_name=COLLECTION_NAME,
-            query=query_vector,
-            limit=5
-        )
-
-        results = []
-
-        for point in response.points:
-
-            if point.payload:
-
-                results.append(
-                    str(point.payload)
-                )
-
-        return results
-
-    except Exception as e:
-
-        return [
-            f"Lỗi khi tìm thủ tục: {str(e)}"
-        ]
+    return search_legal_documents(
+        keyword
+    )
 
 
-# =========================================================
-# 5. RUN MCP SERVER
-# =========================================================
+# ==========================================
+# RUN MCP
+# ==========================================
 
 if __name__ == "__main__":
 
-    mcp.run(transport="stdio")
+    mcp.run(
+        transport="stdio"
+    )

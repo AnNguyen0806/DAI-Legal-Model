@@ -18,7 +18,7 @@ from peft import PeftModel
 
 BASE_MODEL = "Qwen/Qwen2.5-7B-Instruct"
 
-LORA_MODEL = r"D:\DAI-Legal-Model\outputs\qwen-legal-lora-v2"
+LORA_MODEL = r"D:\DAI-Legal-Model\outputs\qwen-legal-lora-v3"
 
 HF_CACHE = r"D:\AI\HuggingFace\hub"
 
@@ -87,7 +87,7 @@ print("Base model loaded.")
 # 7. LOAD LORA
 # =========================================================
 
-print("\nLoading LoRA V2...")
+print("\nLoading LoRA V3...")
 
 model = PeftModel.from_pretrained(
     model,
@@ -96,7 +96,7 @@ model = PeftModel.from_pretrained(
 
 model.eval()
 
-print("LoRA V2 loaded.")
+print("LoRA V3 loaded.")
 
 
 # =========================================================
@@ -157,7 +157,7 @@ def ask_model(question: str):
 
         outputs = model.generate(
             **inputs,
-            max_new_tokens=300,
+            max_new_tokens=384,
             do_sample=False,
             repetition_penalty=1.05,
             pad_token_id=tokenizer.eos_token_id,
@@ -184,7 +184,7 @@ def root():
 
     return {
         "status": "running",
-        "model": "Qwen2.5-7B-Instruct + QLoRA V2"
+        "model": "Qwen2.5-7B-Instruct + QLoRA V3"
     }
 
 

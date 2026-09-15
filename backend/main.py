@@ -177,12 +177,11 @@ async def chat_completions(data: dict):
 
         if contexts:
 
-            context_text = "\n\n".join(
-                [
-                    f"[Văn bản {i + 1}]\n{text}"
-                    for i, text in enumerate(contexts)
-                ]
-            )
+            main_context = contexts[0]
+            main_context = main_context[:8000]  
+            context_text = f"[Văn bản chính]\n{main_context}"
+                   
+            
 
         else:
 
