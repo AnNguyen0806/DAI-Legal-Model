@@ -1,6 +1,6 @@
 export async function askAI(message) {
   const response = await fetch(
-    "http://localhost:8000/api/v1/chat/completions",
+    "https://api.donghai.uk/api/v1/chat/completions",
     {
       method: "POST",
       headers: {
