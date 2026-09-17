@@ -1,149 +1,122 @@
 # DAI-Legal-Model
 
-AI Legal Assistant using **Qwen2.5-7B-Instruct**, **QLoRA/LoRA**, **Retrieval-Augmented Generation (RAG)**, **Model Context Protocol (MCP)**, **Qdrant**, **FastAPI**, and a web frontend.
+> **AI Legal Assistant for Vietnamese administrative procedures**  
+> Qwen2.5-7B-Instruct + LoRA V3 + RAG + Qdrant + MCP + FastAPI + React/Vite
 
 ## 📌 Overview
 
-DAI-Legal-Model is an academic/research prototype for a Vietnamese legal assistant. The system combines a domain-adapted language model with retrieval of legal administrative-procedure data before answer generation.
+DAI-Legal-Model is an academic/research prototype for a Vietnamese legal assistant. The system combines a domain-adapted Large Language Model (LLM) with Retrieval-Augmented Generation (RAG) so that answers can be grounded in retrieved legal administrative-procedure data.
 
-### Main components
+The project currently supports:
 
-- **LLM:** Qwen2.5-7B-Instruct
-- **Fine-tuning:** QLoRA / LoRA / PEFT
-- **RAG:** semantic retrieval of legal procedures from Qdrant
-- **Vector database:** Qdrant
-- **MCP:** tool interface for legal-document and procedure search
-- **Model API:** FastAPI service on port `8001`
-- **Core API:** FastAPI service on port `8000`
-- **Frontend:** web application on port `5173`
-- **Embedding model:** `bkai-foundation-models/vietnamese-bi-encoder`
-- **Hardware tested:** NVIDIA RTX 4070 12GB
+- Vietnamese legal-domain question answering
+- LoRA/QLoRA fine-tuning of Qwen2.5-7B-Instruct
+- Semantic legal-document retrieval with Qdrant
+- MCP tools for legal procedure search
+- FastAPI Core API and Model API
+- React/Vite web frontend
+- Public Internet access through Cloudflare Tunnel
+- Deployment on a local RTX 4070 12GB machine
 
 ---
 
 ## 🏗️ System Architecture
 
 ```text
-┌──────────────────────┐
-│      Frontend        │
-│   localhost:5173     │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│      Core API        │
-│   FastAPI :8000      │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│      MCP Server      │
-│     stdio tools      │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│       Qdrant         │
-│    legal_docs        │
-└──────────┬───────────┘
-           │ retrieved context
-           ▼
-┌──────────────────────┐
-│      Model API       │
-│   FastAPI :8001      │
-│ Qwen2.5-7B + LoRA V3 │
-└──────────┬───────────┘
-           │
-           ▼
-      Generated Answer
+                         Internet
+                            │
+                            ▼
+                  ┌─────────────────────┐
+                  │  Cloudflare Tunnel  │
+                  └──────────┬──────────┘
+                             │
+                             ▼
+                  ┌─────────────────────┐
+                  │      Frontend       │
+                  │    React / Vite     │
+                  │     :5173           │
+                  └──────────┬──────────┘
+                             │
+                             ▼
+                  ┌─────────────────────┐
+                  │      Core API       │
+                  │      FastAPI        │
+                  │       :8000         │
+                  └──────────┬──────────┘
+                             │
+                             ▼
+                  ┌─────────────────────┐
+                  │     MCP Server      │
+                  │      stdio tools    │
+                  └──────────┬──────────┘
+                             │
+                             ▼
+                  ┌─────────────────────┐
+                  │       Qdrant        │
+                  │   collection:       │
+                  │     legal_docs      │
+                  └──────────┬──────────┘
+                             │
+                       Retrieved Context
+                             │
+                             ▼
+                  ┌─────────────────────┐
+                  │      Model API      │
+                  │      FastAPI        │
+                  │       :8001         │
+                  │ Qwen2.5-7B + LoRA V3│
+                  └──────────┬──────────┘
+                             │
+                             ▼
+                     Grounded Answer
 ```
 
-The current pipeline uses **RAG for factual grounding** and **LoRA fine-tuning for domain-specific response behavior**. Retrieved legal-procedure context is provided to Qwen before answer generation.
+### Core principle
 
----
+**LoRA** is used mainly to adapt the model's legal-domain response behavior, while **RAG** provides the factual context used for administrative-procedure questions.
 
-## 📂 Project Structure
-
-```text
-DAI-Legal-Model/
-│
-├── backend/
-│   ├── main.py                    # Core API / RAG orchestration
-│   └── import_dvc_to_qdrant.py    # Import DVC dataset into Qdrant
-│
-├── FE/                            # Frontend application
-│
-├── data/                          # Local datasets (Git LFS)
-│   ├── dichvucong_procedures/
-│   ├── legal_train_v3/
-│   └── vietnamese-legal-instruct/
-│
-├── dataset/                       # Earlier project dataset
-│
-├── mcp_server.py                  # MCP legal search tools
-├── model_api.py                   # Qwen + LoRA inference API
-├── train_v3.py                    # QLoRA V3 training
-├── test_trained_v3.py             # V3 model testing
-├── download_dvc_dataset.py        # Download DVC procedure dataset
-├── download_legal_dataset.py      # Download legal instruction dataset
-├── prepare_legal_dataset.py       # Prepare/filter training data
-├── check_dataset.py               # Dataset inspection
-│
-├── train.py                       # Earlier training script
-├── test_qwen.py                   # Base model test
-├── test_trained.py                # Earlier trained model test
-├── test_trained_v2.py             # V2 model test
-├── evaluate.py                    # Evaluation script
-├── demo_model.py                  # Model demo
-├── requirements.txt               # Python dependencies
-├── .gitignore                     # Git ignore rules
-├── .gitattributes                 # Git LFS configuration
-└── README.md                      # Project documentation
-```
-
-> Model checkpoints in `outputs/` and the Python virtual environment are not stored in Git. The large dataset files under `data/` are tracked with **Git LFS**.
+The MCP retrieval layer prioritizes an exact procedure-name match when possible and then fills the remaining results with semantically relevant documents.
 
 ---
 
 ## 🤖 Model
 
-The current model uses:
+| Component | Configuration |
+|---|---|
+| Base model | `Qwen/Qwen2.5-7B-Instruct` |
+| Fine-tuning | QLoRA / LoRA / PEFT |
+| Adapter | `outputs/qwen-legal-lora-v3` |
+| Quantization | 4-bit NF4 |
+| Compute dtype | BF16 |
+| GPU tested | NVIDIA RTX 4070 12GB |
+| Training dataset | `duyet/vietnamese-legal-instruct` |
 
-```text
-Base model: Qwen/Qwen2.5-7B-Instruct
-Fine-tuning: QLoRA / LoRA
-Adapter: outputs/qwen-legal-lora-v3
-Quantization: 4-bit NF4
-GPU tested: RTX 4070 12GB
-```
+### V3 training
 
-The V3 adapter was trained on Vietnamese legal instruction data. Fine-tuning is intended to improve legal-domain response behavior, while RAG provides the factual context used for current procedure information.
+The V3 adapter was trained with:
 
----
+- 4-bit NF4 quantization
+- LoRA adapters
+- BF16
+- Gradient checkpointing
+- Gradient accumulation
+- Paged AdamW 8-bit optimizer
+- Maximum sequence length: 2048
+- Training data prepared under `data/legal_train_v3/`
 
-## 🧠 Model Training — V3
+Train with:
 
-The V3 training data is prepared from the Vietnamese legal instruction dataset and saved locally in:
-
-```text
- data/legal_train_v3/
-```
-
-Training is performed with `train_v3.py`.
-
-```bash
+```powershell
 python train_v3.py
 ```
 
-The current V3 configuration uses QLoRA with 4-bit NF4 quantization, LoRA adapters, BF16, gradient checkpointing, gradient accumulation, and paged AdamW 8-bit optimization.
-
-The trained adapter is saved to:
+The resulting adapter is saved to:
 
 ```text
 outputs/qwen-legal-lora-v3/
 ```
 
-> `outputs/` is excluded from the Git repository because model checkpoints are large. The training scripts remain in Git so the training process can be reproduced when the required base model and datasets are available.
+Model checkpoints are intentionally excluded from Git because of their size.
 
 ---
 
@@ -151,31 +124,27 @@ outputs/qwen-legal-lora-v3/
 
 ### 1. Vietnamese Legal Instruction Dataset
 
-Source:
-
 ```text
-HF: duyet/vietnamese-legal-instruct
+duyet/vietnamese-legal-instruct
 ```
 
 Used primarily for legal-domain instruction fine-tuning.
 
 ### 2. National Public Service Portal Procedure Dataset
 
-Source:
-
 ```text
-HF: tmquan/dichvucong-gov-vn
+tmquan/dichvucong-gov-vn
 ```
 
-Used for the RAG knowledge base. It contains Vietnamese administrative procedures sourced from the National Public Service Portal.
+Used as the main RAG knowledge source for Vietnamese administrative procedures from the National Public Service Portal.
 
-The downloaded dataset is stored in:
+Local path:
 
 ```text
 data/dichvucong_procedures/
 ```
 
-### 3. Prepared V3 training dataset
+### 3. Prepared V3 dataset
 
 ```text
 data/legal_train_v3/
@@ -183,60 +152,62 @@ data/legal_train_v3/
 
 This is the processed dataset used by `train_v3.py`.
 
+Large dataset files are stored in the repository using **Git LFS**.
+
 ---
 
 ## 🔎 RAG Pipeline
 
 ```text
 User Question
-      │
-      ▼
+     │
+     ▼
 Core API :8000
-      │
-      ▼
+     │
+     ▼
 MCP search_legal_documents
-      │
-      ▼
-Qdrant: legal_docs
-      │
-      ▼
-Relevant legal procedure context
-      │
-      ▼
+     │
+     ▼
+Qdrant / legal_docs
+     │
+     ▼
+Relevant legal procedure
+     │
+     ▼
 Prompt + retrieved context
-      │
-      ▼
+     │
+     ▼
 Model API :8001
-      │
-      ▼
+     │
+     ▼
 Qwen2.5-7B-Instruct + LoRA V3
-      │
-      ▼
-Grounded answer
+     │
+     ▼
+Generated Answer
 ```
 
-The MCP retrieval layer prioritizes an exact procedure-name match when possible and then fills the remaining results with semantically relevant documents.
+The current Core API limits the main retrieved context before sending it to the model to avoid excessive inference latency and request timeouts.
 
 ---
 
-## 🔌 MCP Integration
+## 🔌 MCP
 
-The MCP server is implemented in:
+MCP server:
 
 ```text
 mcp_server.py
 ```
 
-Current tools include:
+Available tools:
 
 - `search_legal_documents`
 - `search_procedure`
 
-The Core API launches the MCP server as a subprocess, so a separate MCP terminal is normally **not required** when running the full application.
+The Core API starts the MCP server as a subprocess, so a separate MCP terminal is normally **not required** for the full application.
 
-For standalone MCP testing:
+Standalone test:
 
-```bash
+```powershell
 python mcp_server.py
 ```
 
@@ -244,7 +215,7 @@ python mcp_server.py
 
 ## 🗄️ Qdrant
 
-The project uses Qdrant as the vector database.
+Qdrant is used as the vector database.
 
 Default address:
 
@@ -258,300 +229,372 @@ Collection:
 legal_docs
 ```
 
-Qdrant can be run through Docker. Example:
+Embedding model:
 
-```bash
+```text
+bkai-foundation-models/vietnamese-bi-encoder
+```
+
+Start Qdrant with Docker:
+
+```powershell
 docker compose up -d
 ```
 
-After downloading the DVC dataset, import it into Qdrant with:
+Download the DVC dataset:
 
-```bash
+```powershell
+python download_dvc_dataset.py
+```
+
+Import the DVC procedure data:
+
+```powershell
 python backend/import_dvc_to_qdrant.py
 ```
 
-> The import script adds the DVC procedure data to the existing `legal_docs` collection and does not delete the existing collection.
+The import script adds DVC data to the existing `legal_docs` collection and does not delete the existing collection.
 
 ---
 
-# 🚀 Installation
+## 🌐 Web Frontend
 
-## 1. Clone the repository
+Frontend technology:
 
-```bash
+- React
+- Vite
+- Tailwind CSS
+- Lucide React
+
+Local development server:
+
+```text
+http://localhost:5173
+```
+
+The browser tab is configured as:
+
+```text
+AI Pháp Lý
+```
+
+The frontend communicates with the Core API through the `/api/v1/chat/completions` endpoint using streaming responses.
+
+---
+
+## 🌍 Internet Deployment
+
+The application has been exposed to the Internet using **Cloudflare Tunnel** while keeping the model running on the local RTX 4070 machine.
+
+Current routing:
+
+```text
+legal.donghai.uk
+        │
+        ▼
+localhost:5173
+Frontend
+```
+
+```text
+api.donghai.uk
+        │
+        ▼
+localhost:8000
+Core API
+```
+
+The Cloudflare agent is installed as a Windows Service.
+
+Verified deployment flow:
+
+```text
+Other Device
+     │
+     ▼
+Internet
+     │
+     ▼
+Cloudflare Tunnel
+     │
+     ├── Frontend :5173
+     │
+     └── Core API :8000
+              │
+              ▼
+         MCP + Qdrant
+              │
+              ▼
+       Model API :8001
+              │
+              ▼
+     Qwen2.5-7B + LoRA V3
+```
+
+The system has been tested from another device through the public domain.
+
+> The local PC must remain powered on and connected to the Internet for the public demo to remain available.
+
+---
+
+## 📂 Project Structure
+
+```text
+DAI-Legal-Model/
+│
+├── backend/
+│   ├── main.py
+│   └── import_dvc_to_qdrant.py
+│
+├── FE/
+│   ├── src/
+│   ├── index.html
+│   └── vite.config.js
+│
+├── data/
+│   ├── dichvucong_procedures/
+│   ├── legal_train_v3/
+│   └── vietnamese-legal-instruct/
+│
+├── dataset/
+│
+├── mcp_server.py
+├── model_api.py
+├── train_v3.py
+├── test_trained_v3.py
+├── download_dvc_dataset.py
+├── download_legal_dataset.py
+├── prepare_legal_dataset.py
+├── check_dataset.py
+├── requirements.txt
+├── docker-compose.yml
+├── .gitignore
+├── .gitattributes
+└── README.md
+```
+
+---
+
+## ⚙️ Installation
+
+### 1. Clone repository
+
+```powershell
 git clone https://github.com/AnNguyen0806/DAI-Legal-Model.git
 cd DAI-Legal-Model
 ```
 
-## 2. Git LFS
+### 2. Git LFS
 
-The project stores large dataset files with Git LFS.
+Install Git LFS and initialize it:
 
-Install Git LFS and run:
-
-```bash
+```powershell
 git lfs install
-```
-
-Then retrieve LFS files after cloning:
-
-```bash
 git lfs pull
 ```
 
-> The current dataset is several GB, so cloning/pulling the repository requires sufficient disk space and Git LFS bandwidth/storage quota.
+The repository contains several GB of dataset files, so sufficient disk space and Git LFS quota are required.
 
-## 3. Create Python environment
+### 3. Create Python environment
 
 Windows:
 
-```bash
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scriptsctivate
 ```
 
-## 4. Install dependencies
+### 4. Install dependencies
 
-```bash
+```powershell
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 ---
 
-# 📥 Download Datasets
+## 📥 Dataset Preparation
 
-If the datasets are not already available locally, run:
+Download the DVC procedure dataset:
 
-```bash
+```powershell
 python download_dvc_dataset.py
 ```
 
-and:
+Download the legal instruction dataset:
 
-```bash
+```powershell
 python download_legal_dataset.py
 ```
 
-Prepare the V3 training dataset with:
+Prepare the V3 training data:
 
-```bash
+```powershell
 python prepare_legal_dataset.py
 ```
 
-Inspect the dataset with:
+Inspect the prepared dataset:
 
-```bash
+```powershell
 python check_dataset.py
 ```
 
 ---
 
-# ▶️ Running the Full System
+## ▶️ Running the Full System
 
-The current system uses three main services.
+The application uses three main services.
 
-## 1. Start Model API — Port 8001
-
-From the project root:
+### 1. Model API
 
 ```powershell
 cd D:\DAI-Legal-Model
-.\.venv\Scripts\activate
+.\.venv\Scriptsctivate
 python model_api.py
 ```
 
-The service runs at:
+Model API:
 
 ```text
 http://localhost:8001
 ```
 
-## 2. Start Core API — Port 8000
+### 2. Core API
 
 Open another terminal:
 
 ```powershell
 cd D:\DAI-Legal-Model
-.\.venv\Scripts\activate
+.\.venv\Scriptsctivate
 python backend\main.py
 ```
 
-The service runs at:
+Core API:
 
 ```text
 http://localhost:8000
 ```
 
-Core API responsibilities include:
-
-- receiving frontend requests
-- calling MCP tools
-- retrieving legal context from Qdrant
-- constructing the grounded prompt
-- calling the Model API
-- streaming the answer back to the frontend
-
-## 3. Start Frontend — Port 5173
+### 3. Frontend
 
 Open another terminal:
 
 ```powershell
 cd D:\DAI-Legal-Model\FE
-npm install
 npm run dev
 ```
 
-The frontend is available at:
+Frontend:
 
 ```text
-http://localhost:5173/
+http://localhost:5173
 ```
+
+MCP is automatically launched by the Core API during normal operation.
 
 ---
 
-# 🧪 Testing
+## 🧪 Testing
 
-### Test V3 model directly
+### Test the trained model
 
-```bash
+```powershell
 python test_trained_v3.py
 ```
 
-### Test the base Qwen model
+### Test the MCP server
 
-```bash
-python test_qwen.py
+```powershell
+python mcp_server.py
 ```
 
-### Earlier model tests
+### Recommended RAG questions
 
-```bash
-python test_trained.py
-python test_trained_v2.py
-```
-
-### Evaluation
-
-```bash
-python evaluate.py
-```
-
----
-
-# 🧪 Suggested RAG Tests
-
-Example questions for evaluating retrieval and grounding:
+Examples:
 
 ```text
-1. Thủ tục đăng ký tạm trú cần những giấy tờ gì?
-2. Đăng ký tạm trú có mất phí không?
-3. Đăng ký tạm trú mất bao lâu?
-4. Có thể đăng ký tạm trú online không?
-5. Thủ tục xóa đăng ký tạm trú cần những gì?
-6. Thủ tục gia hạn tạm trú thực hiện như thế nào?
-7. Đăng ký kết hôn cần những giấy tờ gì?
-8. Đăng ký kết hôn mất bao lâu?
-9. Chứng thực chữ ký cần những giấy tờ gì?
-10. Chứng thực chữ ký mất bao lâu?
-11. Cấp bản sao trích lục hộ tịch cần hồ sơ gì?
-12. Thủ tục cấp giấy khai sinh cần những giấy tờ gì?
-13. Thủ tục cấp hộ chiếu cần những giấy tờ gì?
-14. Thủ tục đăng ký xe cần những giấy tờ gì?
-15. Thủ tục không tồn tại trong dữ liệu cần những gì?
+Thủ tục đăng ký tạm trú cần những giấy tờ gì?
+
+Đăng ký kết hôn mất bao lâu?
+
+Chứng thực chữ ký mất bao lâu?
+
+Lệ phí đăng ký tạm trú là bao nhiêu?
+
+Đăng ký tạm trú thực hiện ở đâu?
 ```
 
-Evaluation should consider:
+When evaluating the system, pay attention to:
 
-- **Retrieval quality** — whether the relevant procedure is retrieved.
-- **Grounding** — whether the answer follows the retrieved legal context.
-- **Hallucination** — whether unsupported facts are introduced.
-- **Answer quality** — clarity, completeness, and relevance.
+- Retrieval relevance
+- Exact procedure matching
+- Factual grounding
+- Hallucination
+- Answer completeness
+- Response latency
 
 ---
 
-# 🔐 Security
+## 🔄 Current Development Status
 
-Never commit sensitive information to GitHub.
+### Completed
 
-Do not upload:
-
-```text
-.env
-API keys
-Access tokens
-Passwords
-Private credentials
-```
-
-Use environment variables for sensitive configuration.
-
----
-
-# 🚫 Large / Generated Files
-
-The following types of files should normally not be committed directly to Git:
-
-```text
-.venv/
-__pycache__/
-outputs/
-*.safetensors
-*.bin
-*.pt
-*.pth
-*.gguf
-.env
-```
-
-Large datasets under `data/` are currently tracked using **Git LFS**.
-
----
-
-# 🛠️ Development Status
-
-- [x] Qwen2.5-7B-Instruct integration
-- [x] QLoRA / LoRA fine-tuning
-- [x] LoRA V3 training
-- [x] V3 model testing
+- [x] Qwen2.5-7B-Instruct inference
+- [x] LoRA V3 fine-tuning
+- [x] Vietnamese legal instruction dataset preparation
+- [x] DVC procedure dataset integration
 - [x] Qdrant vector database
-- [x] Legal procedure RAG
-- [x] MCP server
-- [x] Core FastAPI API
-- [x] Model FastAPI API
-- [x] Frontend application
-- [x] DVC administrative-procedure dataset integration
+- [x] RAG retrieval pipeline
+- [x] MCP legal search tools
+- [x] FastAPI Core API
+- [x] FastAPI Model API
+- [x] React/Vite frontend
+- [x] Streaming AI responses
+- [x] Frontend UI update
 - [x] Git LFS dataset storage
-- [ ] Further RAG retrieval optimization
-- [ ] More comprehensive legal-domain evaluation
-- [ ] Further hallucination reduction
-- [ ] Additional legal tools
-- [ ] Production deployment
+- [x] Cloudflare Tunnel deployment
+- [x] Public Internet testing from another device
+
+### Next steps
+
+- [ ] Add deterministic legal source references to generated answers
+- [ ] Run a larger legal-question evaluation set
+- [ ] Record retrieval and answer-quality results
+- [ ] Create `start.bat` for one-click startup
+- [ ] Verify Qdrant Docker auto-start
+- [ ] Capture screenshots for the academic report
+- [ ] Prepare presentation slides and demo script
 
 ---
 
-# 🎯 Project Goal
+## ⚠️ Disclaimer
 
-The project aims to develop an AI legal assistant capable of:
+This project is an **academic/research prototype** and is not a substitute for professional legal advice.
 
-1. Understanding natural-language Vietnamese legal questions.
-2. Retrieving relevant administrative procedures from a vector database.
-3. Using retrieved context to ground generated answers.
-4. Connecting the model to external tools through MCP.
-5. Applying domain-specific LoRA fine-tuning.
-6. Providing an interactive web interface.
-7. Reducing hallucination through retrieval and grounding.
+Legal procedures, fees, required documents, processing times, and regulations may change. Users should verify important information against current official sources before taking legal or administrative action.
 
 ---
 
-# ⚠️ Disclaimer
+## 👨‍💻 Project
 
-This project is an academic/research prototype.
+**DAI-Legal-Model**
 
-Generated information should **not** be considered a substitute for professional legal advice. Important legal information should be verified against official legal documents and current government sources.
+Vietnamese Legal AI Assistant using:
 
----
-
-# 📄 License
-
-This project is currently intended for academic and research purposes. Dataset licenses and source terms should be respected when redistributing or using the included data.
+```text
+Qwen2.5-7B-Instruct
+        +
+LoRA / QLoRA
+        +
+RAG
+        +
+Qdrant
+        +
+MCP
+        +
+FastAPI
+        +
+React / Vite
+        +
+Cloudflare Tunnel
+```
