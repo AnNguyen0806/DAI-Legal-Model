@@ -12,10 +12,31 @@ import {
 } from "lucide-react";
 import { askAI } from "./api";
 
+const popularQuestions = [
+  "Thủ tục đăng ký tạm trú cần những giấy tờ gì?",
+  "Đăng ký tạm trú có mất phí không?",
+  "Đăng ký tạm trú thực hiện ở đâu?",
+  "Đăng ký kết hôn cần những giấy tờ gì?",
+  "Đăng ký kết hôn mất bao lâu?",
+  "Thủ tục chứng thực bản sao từ bản chính cần những giấy tờ gì?",
+  "Thủ tục cấp hộ chiếu cần những giấy tờ gì?",
+  "Thủ tục đăng ký khai sinh cần những giấy tờ gì?",
+  "Thủ tục đăng ký xe máy cần những giấy tờ gì?",
+  "Thủ tục cấp giấy khai sinh cần những giấy tờ gì?",
+];
+
+const getRandomQuestions = () => {
+  return [...popularQuestions]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+};
+
 function App() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [quickQuestions] = useState(() => getRandomQuestions());
 
   const handleAskAI = async () => {
     if (!question.trim()) {
@@ -36,12 +57,6 @@ function App() {
       setLoading(false);
     }
   };
-
-  const quickQuestions = [
-    "Thủ tục đăng ký tạm trú cần những giấy tờ gì?",
-    "Đăng ký tạm trú có mất phí không?",
-    "Đăng ký kết hôn cần những giấy tờ gì?",
-  ];
 
   return (
     <div className="min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-900">
@@ -133,9 +148,11 @@ function App() {
 
           {/* background decoration */}
           <div className="absolute -left-32 top-20 h-72 w-72 rounded-full bg-blue-100/50 blur-3xl" />
+
           <div className="absolute -right-32 top-10 h-80 w-80 rounded-full bg-indigo-100/50 blur-3xl" />
 
           <div className="absolute left-1/2 top-24 h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-200/20 blur-3xl" />
+
           <div className="relative mx-auto max-w-7xl px-6 pb-20 pt-20 md:pb-28 md:pt-24">
 
             <div className="mx-auto max-w-4xl text-center">
@@ -235,6 +252,7 @@ function App() {
                     className="group rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                   >
                     {item}
+
                     <ArrowRight
                       size={14}
                       className="ml-2 inline-block opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100"
@@ -294,6 +312,7 @@ function App() {
             <div className="mx-auto mt-16 grid max-w-4xl gap-4 md:grid-cols-3">
 
               <div className="rounded-2xl border border-blue-100 bg-white/90 p-5 shadow-lg shadow-blue-100/50 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-100/70">
+
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                   <Search size={20} />
                 </div>
@@ -305,9 +324,11 @@ function App() {
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Tìm kiếm thông tin pháp luật từ cơ sở dữ liệu được tích hợp.
                 </p>
+
               </div>
 
               <div className="rounded-2xl border border-indigo-100 bg-white/90 p-5 shadow-lg shadow-indigo-100/50 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-100/70">
+
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                   <Sparkles size={20} />
                 </div>
@@ -319,9 +340,11 @@ function App() {
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Qwen2.5-7B kết hợp LoRA để hỗ trợ xử lý câu hỏi pháp lý.
                 </p>
+
               </div>
 
               <div className="rounded-2xl border border-emerald-100 bg-white/90 p-5 shadow-lg shadow-emerald-100/50 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-100/70">
+
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                   <ShieldCheck size={20} />
                 </div>
@@ -333,6 +356,7 @@ function App() {
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Hệ thống sử dụng RAG để truy xuất thông tin trước khi trả lời.
                 </p>
+
               </div>
 
             </div>
