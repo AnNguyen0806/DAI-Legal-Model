@@ -178,7 +178,7 @@ async def chat_completions(data: dict):
         if contexts:
 
             main_context = contexts[0]
-            main_context = main_context[:8000]  
+            main_context = main_context[:5000]  
             context_text = f"[Văn bản chính]\n{main_context}"
                    
             
