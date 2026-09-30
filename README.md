@@ -1,18 +1,20 @@
 # DAI-Legal-Model
 
 > **AI Legal Assistant for Vietnamese administrative procedures**  
-> Qwen2.5-7B-Instruct + LoRA V3 + RAG + Qdrant + MCP + FastAPI + React/Vite
+> Qwen2.5-7B-Instruct + LoRA V3 + BGE-M3 RAG + Qdrant + Reranker + MCP/DVC + FastAPI + React/Vite
 
 ## 📌 Overview
 
-DAI-Legal-Model is an academic/research prototype for a Vietnamese legal assistant. The system combines a domain-adapted Large Language Model (LLM) with Retrieval-Augmented Generation (RAG) so that answers can be grounded in retrieved legal administrative-procedure data.
+DAI-Legal-Model is an academic/research prototype for a Vietnamese legal assistant. The system combines a domain-adapted Large Language Model (LLM) with Retrieval-Augmented Generation (RAG), semantic reranking, and permission-controlled external retrieval so that answers can be grounded in Vietnamese administrative-procedure data.
 
 The project currently supports:
 
 - Vietnamese legal-domain question answering
 - LoRA/QLoRA fine-tuning of Qwen2.5-7B-Instruct
 - Semantic legal-document retrieval with Qdrant
-- MCP tools for legal procedure search
+- MCP tools for legal procedure search and DVC external retrieval
+- Permission-gated fallback from Local RAG to external DVC retrieval
+- Auto Fine-Tuning pipeline with validation, QLoRA training, evaluation, and adapter activation/rollback
 - FastAPI Core API and Model API
 - React/Vite web frontend
 - Public Internet access through Cloudflare Tunnel
@@ -23,61 +25,59 @@ The project currently supports:
 ## 🏗️ System Architecture
 
 ```text
-                         Internet
-                            │
-                            ▼
-                  ┌─────────────────────┐
-                  │  Cloudflare Tunnel  │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │      Frontend       │
-                  │    React / Vite     │
-                  │     :5173           │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │      Core API       │
-                  │      FastAPI        │
-                  │       :8000         │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │     MCP Server      │
-                  │      stdio tools    │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │       Qdrant        │
-                  │   collection:       │
-                  │     legal_docs      │
-                  └──────────┬──────────┘
-                             │
-                       Retrieved Context
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │      Model API      │
-                  │      FastAPI        │
-                  │       :8001         │
-                  │ Qwen2.5-7B + LoRA V3│
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                     Grounded Answer
+USER
+  ↓
+FRONTEND (React / Vite)
+  ↓
+CORE API :8000
+  ↓
+ORCHESTRATOR
+  ↓
+SYNONYM MAPPING
+  ↓
+BGE-M3
+  ↓
+QUERY EMBEDDING
+  ↓
+QDRANT
+  ↓
+TOP-K
+  ↓
+BGE RERANKER
+  ↓
+ENOUGH DATA?
+  ├── YES
+  │    ↓
+  │  LEGAL CONTEXT
+  │    ↓
+  │  QWEN2.5-7B + LORA V3
+  │    ↓
+  │  ANSWER
+  │
+  └── NO
+       ↓
+    ASK USER
+       ↓
+    USER ALLOW?
+       ↓ YES
+      MCP
+       ↓
+     DVC API
+       ↓
+   LEGAL CONTEXT
+       ↓
+  QWEN2.5-7B + LORA V3
+       ↓
+     ANSWER
 ```
 
 ### Core principle
 
-**LoRA** is used mainly to adapt the model's legal-domain response behavior, while **RAG** provides the factual context used for administrative-procedure questions.
+**Local RAG is the primary retrieval path.** BGE-M3 converts the user query into an embedding, Qdrant retrieves candidate procedures, and BGE Reranker filters/reorders the candidates before the system decides whether the local evidence is sufficient.
 
-The MCP retrieval layer prioritizes an exact procedure-name match when possible and then fills the remaining results with semantically relevant documents.
+**MCP is a fallback mechanism**, not the first retrieval path. When local evidence is insufficient, the system asks the user for permission before accessing the whitelisted DVC source.
 
----
+**LoRA** adapts the model's legal-domain response behavior, while **RAG** supplies factual context for administrative-procedure questions.
 
 ## 🤖 Model
 
@@ -186,7 +186,7 @@ Qwen2.5-7B-Instruct + LoRA V3
 Generated Answer
 ```
 
-The current Core API limits the main retrieved context before sending it to the model to avoid excessive inference latency and request timeouts.
+The current Core API limits and reranks the retrieved context before sending it to the model to reduce irrelevant context, hallucination risk, inference latency, and request timeouts.
 
 ---
 
@@ -215,7 +215,7 @@ python mcp_server.py
 
 ## 🗄️ Qdrant
 
-Qdrant is used as the vector database.
+Qdrant is used as the local vector database for the Local RAG pipeline.
 
 Default address:
 
@@ -223,39 +223,37 @@ Default address:
 http://localhost:6333
 ```
 
-Collection:
+Current collection:
 
 ```text
-legal_docs
+legal_docs_bge_m3
 ```
 
 Embedding model:
 
 ```text
-bkai-foundation-models/vietnamese-bi-encoder
+BAAI/bge-m3
 ```
 
-Start Qdrant with Docker:
+Vector size:
 
-```powershell
-docker compose up -d
+```text
+1024
 ```
 
-Download the DVC dataset:
+Distance:
 
-```powershell
-python download_dvc_dataset.py
+```text
+COSINE
 ```
 
-Import the DVC procedure data:
+The current DVC import workflow uses:
 
 ```powershell
 python backend/import_dvc_to_qdrant.py
 ```
 
-The import script adds DVC data to the existing `legal_docs` collection and does not delete the existing collection.
-
----
+The system uses Qdrant as the primary local knowledge base before considering external MCP retrieval.
 
 ## 🌐 Web Frontend
 
@@ -347,33 +345,31 @@ DAI-Legal-Model/
 │   └── import_dvc_to_qdrant.py
 │
 ├── FE/
-│   ├── src/
-│   ├── index.html
-│   └── vite.config.js
+│   └── src/
+│       ├── App.jsx
+│       └── api.js
 │
-├── data/
-│   ├── dichvucong_procedures/
-│   ├── legal_train_v3/
-│   └── vietnamese-legal-instruct/
-│
-├── dataset/
+├── auto_finetune/
+│   ├── auto_activation.py
+│   ├── auto_evaluator.py
+│   ├── auto_trainer.py
+│   ├── dataset_formatter.py
+│   ├── dataset_manager.py
+│   ├── dataset_validator.py
+│   ├── run_auto.py
+│   └── datasets/
+│       └── current/
 │
 ├── mcp_server.py
 ├── model_api.py
-├── train_v3.py
-├── test_trained_v3.py
-├── download_dvc_dataset.py
-├── download_legal_dataset.py
-├── prepare_legal_dataset.py
-├── check_dataset.py
+├── run_test_cases.py
+├── test_reranker.py
 ├── requirements.txt
-├── docker-compose.yml
 ├── .gitignore
-├── .gitattributes
 └── README.md
 ```
 
----
+Large datasets, model checkpoints, local databases, and runtime-generated files should not be committed to the repository unless they are intentionally managed through Git LFS or another artifact-storage mechanism.
 
 ## ⚙️ Installation
 
@@ -535,17 +531,46 @@ When evaluating the system, pay attention to:
 
 ---
 
+## 🔄 Auto Fine-Tuning
+
+The project includes an automated fine-tuning pipeline under `auto_finetune/`:
+
+```text
+Dataset
+  ↓
+Validation
+  ↓
+Formatting
+  ↓
+QLoRA Training
+  ↓
+Evaluation
+  ↓
+Activation / Rollback
+```
+
+A new dataset can be placed into the current dataset directory and processed by `run_auto.py`. The candidate adapter is activated only when evaluation passes; otherwise the previously active adapter is retained.
+
+Run:
+
+```powershell
+python auto_finetune/run_auto.py
+```
+
 ## 🔄 Current Development Status
 
 ### Completed
 
 - [x] Qwen2.5-7B-Instruct inference
 - [x] LoRA V3 fine-tuning
+- [x] Auto Fine-Tuning pipeline
 - [x] Vietnamese legal instruction dataset preparation
 - [x] DVC procedure dataset integration
 - [x] Qdrant vector database
-- [x] RAG retrieval pipeline
+- [x] BGE-M3 RAG retrieval pipeline
+- [x] BGE Reranker
 - [x] MCP legal search tools
+- [x] Permission-controlled external retrieval
 - [x] FastAPI Core API
 - [x] FastAPI Model API
 - [x] React/Vite frontend
@@ -561,11 +586,20 @@ When evaluating the system, pay attention to:
 - [ ] Run a larger legal-question evaluation set
 - [ ] Record retrieval and answer-quality results
 - [ ] Create `start.bat` for one-click startup
-- [ ] Verify Qdrant Docker auto-start
+- [ ] Revisit Docker packaging after native demo is stable
 - [ ] Capture screenshots for the academic report
 - [ ] Prepare presentation slides and demo script
 
 ---
+
+## ⚠️ Limitations
+
+- Retrieval quality depends on the quality and coverage of the local legal dataset.
+- External DVC search may return noisy or partially mismatched procedures, so procedure matching remains an important limitation.
+- The multi-stage pipeline can increase response latency compared with direct LLM inference.
+- RAG reduces hallucination risk but cannot guarantee that generated answers are always correct.
+- The current knowledge scope focuses strongly on Vietnamese administrative procedures and does not represent the complete body of Vietnamese law.
+- External retrieval depends on the availability and response quality of the DVC source.
 
 ## ⚠️ Disclaimer
 
