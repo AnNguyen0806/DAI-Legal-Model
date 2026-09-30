@@ -371,6 +371,25 @@ DAI-Legal-Model/
 
 Large datasets, model checkpoints, local databases, and runtime-generated files should not be committed to the repository unless they are intentionally managed through Git LFS or another artifact-storage mechanism.
 
+## 🔌 API Endpoints
+
+| Service | Endpoint | Port | Purpose |
+|---|---|---:|---|
+| Core API | `/api/v1/chat/completions` | 8000 | Chat request and answer generation |
+| Core API | `/api/v1/chat/history` | 8000 | Retrieve conversation/session history |
+| Model API | `/generate` | 8001 | Qwen2.5-7B + LoRA inference |
+| Qdrant | `/collections` | 6333 | Vector database status and collections |
+
+The normal application flow is:
+
+```text
+Frontend → Core API → Local RAG
+                     ↓
+                MCP if allowed
+                     ↓
+                 Model API
+```
+
 ## ⚙️ Installation
 
 ### 1. Clone repository
@@ -490,6 +509,19 @@ MCP is automatically launched by the Core API during normal operation.
 
 ---
 
+## 🎬 Demo Test Cases
+
+Recommended scenarios for the academic demonstration:
+
+1. **Local RAG** — `Đăng ký tạm trú cần những giấy tờ gì?`
+2. **Synonym Mapping** — `ĐKKH cần những giấy tờ gì?`
+3. **Insufficient Local Data** — ask a procedure that is not sufficiently covered by the local knowledge base.
+4. **Permission + MCP** — when Local RAG is insufficient, demonstrate the user permission step before external retrieval.
+5. **DVC procedure/fee query** — demonstrate retrieval from the DVC source after permission.
+6. **Session History** — create a conversation, reload/request history, and continue the same session.
+7. **Multi-session** — use different session IDs to demonstrate separated conversation contexts.
+8. **Auto Fine-Tuning** — demonstrate the dataset → training → evaluation → activation/rollback pipeline.
+
 ## 🧪 Testing
 
 ### Test the trained model
@@ -530,6 +562,52 @@ When evaluating the system, pay attention to:
 - Response latency
 
 ---
+
+## 👥 Multi-user & Session History
+
+The application supports multiple independent chat sessions through `session_id`.
+
+### Session flow
+
+```text
+User
+  ↓
+Frontend
+  ↓
+session_id
+  ↓
+Core API
+  ↓
+Session / Conversation History
+  ↓
+RAG + MCP + Model
+  ↓
+Answer
+```
+
+### Multi-user behavior
+
+- Each conversation is associated with a `session_id`.
+- Different sessions keep their conversation context separate.
+- The frontend sends the session identifier with chat requests.
+- The Core API uses the session identifier when handling conversation history.
+- The architecture can serve multiple users/sessions without loading a separate Qwen model for every request.
+
+### Conversation History
+
+The frontend can request conversation history through:
+
+```text
+GET /api/v1/chat/history
+```
+
+Chat requests use:
+
+```text
+POST /api/v1/chat/completions
+```
+
+The session/history mechanism allows a user to continue a previous conversation while keeping different sessions logically separated.
 
 ## 🔄 Auto Fine-Tuning
 
@@ -576,6 +654,8 @@ python auto_finetune/run_auto.py
 - [x] React/Vite frontend
 - [x] Streaming AI responses
 - [x] Frontend UI update
+- [x] Session-based conversation history
+- [x] Multi-session architecture
 - [x] Git LFS dataset storage
 - [x] Cloudflare Tunnel deployment
 - [x] Public Internet testing from another device
