@@ -190,7 +190,9 @@ The current Core API limits and reranks the retrieved context before sending it 
 
 ---
 
-## 🔌 MCP
+## 🔌 MCP & External Data Retrieval
+
+MCP is used as the **external retrieval layer** when the Local RAG knowledge base does not contain enough reliable information to answer the user's question.
 
 MCP server:
 
@@ -198,14 +200,106 @@ MCP server:
 mcp_server.py
 ```
 
-Available tools:
+### MCP tools
+
+Available tools include:
 
 - `search_legal_documents`
 - `search_procedure`
 
 The Core API starts the MCP server as a subprocess, so a separate MCP terminal is normally **not required** for the full application.
 
-Standalone test:
+### 🌐 External Data Source — Dịch vụ công Quốc gia
+
+The external retrieval layer connects to the **National Public Service Portal (Dịch vụ công Quốc gia — DVC)** for Vietnamese administrative-procedure information.
+
+The DVC source is used to retrieve procedure information such as:
+
+- Procedure name and identification
+- Required documents
+- Processing information
+- Fees / charges when available
+- Other available administrative-procedure details
+
+The MCP server uses a whitelist for the external host:
+
+```text
+dichvucong.gov.vn
+```
+
+The main external DVC endpoints used by the project are:
+
+```text
+/api/v1/submitting/formality-top-search/list-by-citizen
+/api/v1/configuring/formality/get-formality-by-citizen
+```
+
+### 🔄 External Retrieval Flow
+
+External retrieval is **not the first retrieval path**. The system follows a Local-first strategy:
+
+```text
+User Question
+      ↓
+Synonym Mapping
+      ↓
+BGE-M3
+      ↓
+Qdrant
+      ↓
+Top-K
+      ↓
+BGE Reranker
+      ↓
+Enough Local Data?
+   ├── YES
+   │    ↓
+   │  Local Legal Context
+   │    ↓
+   │  Qwen2.5-7B + LoRA V3
+   │    ↓
+   │  Answer
+   │
+   └── NO
+        ↓
+    Ask User Permission
+        ↓
+     User allows?
+        ↓ YES
+       MCP
+        ↓
+     DVC API
+        ↓
+   External Legal Context
+        ↓
+   Qwen2.5-7B + LoRA V3
+        ↓
+      Answer
+```
+
+### 🔐 Permission & Safety
+
+When Local RAG is insufficient, the system asks the user for permission before accessing external data.
+
+```text
+Local RAG insufficient
+        ↓
+Ask: Allow external retrieval?
+        ↓
+   ┌────┴────┐
+   │         │
+  YES        NO
+   │         │
+   ↓         ↓
+ MCP       Stop external
+   │       retrieval
+   ↓
+ DVC API
+```
+
+The MCP server does not provide unrestricted web/Google search. External retrieval is restricted to the configured DVC source.
+
+### MCP standalone test
 
 ```powershell
 python mcp_server.py
